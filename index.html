@@ -1,0 +1,61 @@
+<!doctype html>
+
+<html lang="es">
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Descarga catastro</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
+    <link rel="stylesheet" href="./index.css" />
+  </head>
+
+  <body>
+    <div id="app">
+      <div id="map"></div>
+
+      <div id="side">
+        <h2>Descarga edificios</h2>
+        <div class="note">Dibuja un rectángulo en el mapa o introduce coordenadas. Máx 0.5 km².</div>
+
+        <form id="bboxForm" method="post" action="/export">
+          <label for="xmin">xmin (west)</label>
+          <input id="xmin" name="xmin" type="text" required />
+
+          <label for="ymin">ymin (south)</label>
+          <input id="ymin" name="ymin" type="text" required />
+
+          <label for="xmax">xmax (east)</label>
+          <input id="xmax" name="xmax" type="text" required />
+
+          <label for="ymax">ymax (north)</label>
+          <input id="ymax" name="ymax" type="text" required />
+
+          <div class="bbox-values" id="areaInfo">Área estimada: —</div>
+
+          <div class="dialog" id="tooLarge">Acércate — el área máxima permitida es 0.5 km².</div>
+
+          <button id="exportBtn" type="submit">Descargar</button>
+          <button id="copyBtn" type="button">Copiar coords</button>
+        </form>
+
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modalOverlay" role="dialog" aria-modal="true">
+      <div id="modalBox">
+        <div id="modalMsg" style="font-weight:600">Generando fichero, espera…</div>
+        <div id="progressBar">
+          <div id="progressFill"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+    <script src="./index.js" type="module"></script>
+  </body>
+
+</html>
