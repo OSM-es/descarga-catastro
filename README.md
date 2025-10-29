@@ -2,9 +2,10 @@
 
 Esta web permite seleccionar un rectángulo en el mapa, un bounding box, y descargar la información sobre _edificios_, _partes de edificios_ y _otras edificaciones_, que se encuentren en servicio web WFS de https://www.catastro.hacienda.gob.es/webinspire/index.html
 
-Puerto por defecto: 8000
-
 ## Build local con Docker
+
+Puerto por defecto: `8000` (configurable con variables de entorno)
+
 1. Construir imagen:
    `docker build -t descarga-catastro .`
 

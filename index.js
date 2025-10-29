@@ -17,7 +17,7 @@ const overlays = {
   }),
 }
 
-L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
+L.control.layers(baseLayers, overlays).addTo(map);
 
 // Control de dibujo (solo rectángulo)
 var drawnLayer = null;

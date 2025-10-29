@@ -121,3 +121,77 @@ button:disabled {
   width: 0%;
   transition: width 0.3s linear;
 }
+
+/* --- Responsive: móviles --- */
+@media (max-width: 720px) {
+  #app {
+    flex-direction: column;
+  }
+
+  #map {
+    height: 60vh;
+    order: 1;
+  }
+
+  #side {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: auto;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+    order: 2;
+    padding: 12px 10px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+  }
+
+  /* Ajustes de formulario y botones */
+  input[type="text"] {
+    padding: 10px;
+    font-size: 15px;
+  }
+
+  button {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+  }
+
+  #exportBtn {
+    margin-top: 10px;
+  }
+
+  #copyBtn {
+    margin-top: 8px;
+  }
+
+  /* Modal centrado en móvil */
+  #modalBox {
+    margin: 0 12px;
+    width: auto;
+  }
+
+  /* ocultar campos de coordenadas y botón copiar en móvil */
+  #bboxForm label,
+  #bboxForm input[type="text"],
+  #copyBtn {
+    display: none;
+  }
+
+  /* ajustar espaciado del botón principal cuando inputs ocultos */
+  #exportBtn {
+    width: 100%;
+    margin-top: 8px;
+  }
+}
+
+/* Mejora para tablets intermedias */
+@media (min-width: 721px) and (max-width: 1024px) {
+  #map {
+    height: 65vh;
+  }
+
+  #side {
+    max-width: 360px;
+  }
+}
