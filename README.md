@@ -9,7 +9,7 @@ Puerto por defecto: 8000
    `docker build -t descarga-catastro .`
 
 2. Ejecutar contenedor:
-   `docker run --rm -p 8000:8000 descarga-catastro`
+   `docker run --rm --init -p 8000:8000 descarga-catastro`
 
 3. Abrir en el navegador:
    http://localhost:8000

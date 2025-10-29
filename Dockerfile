@@ -10,14 +10,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && apt-get install -y nodejs \
   && rm -rf /var/lib/apt/lists/*
 
-# Instalar mapshaper globalmente
-RUN npm install -g mapshaper
-
 WORKDIR /app
 
 # Copiar package.json e instalar dependencias de Node
-COPY package.json package-lock.json* ./
-RUN npm ci --only=production
+COPY package.json ./
+RUN npm install --package-lock-only && npm ci --only=production
 
 # Copiar el resto de la aplicación
 COPY . .

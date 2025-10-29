@@ -54,4 +54,9 @@ app.post('/export', (req, res) => {
 });
 
 const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
+const server = app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
+
+const shutdown = () => server.close(()=> process.exit(0)); 
+
+process.on('SIGTERM', shutdown); 
+process.on('SIGINT', shutdown);
