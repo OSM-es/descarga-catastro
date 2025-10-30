@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive PORT=8000
 
 # Instalar dependencias del sistema y Node.js 20
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    bash curl ca-certificates gdal-bin jq zip unzip python3 proj-bin \
+    bash curl ca-certificates gdal-bin jq zip unzip python3 proj-bin spatialite-bin \
   && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
   && apt-get install -y nodejs \
   && rm -rf /var/lib/apt/lists/*

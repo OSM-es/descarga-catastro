@@ -21,7 +21,9 @@ WFS_BUILDINGS="http://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx?service=wfs&version
 WFS_ADDRESSES="http://ovc.catastro.meh.es/INSPIRE/wfsAD.aspx?service=wfs&version=2&request=GetFeature&bbox=$BBOX&srsname=${S_SRS}"
 OUTDIR=$(mktemp -d)
 
-# DOCS: https://www.catastro.hacienda.gob.es/webinspire/documentos/Conjuntos%20de%20datos.pdf
+# DOCS: 
+# - https://www.catastro.hacienda.gob.es/webinspire/documentos/Conjuntos%20de%20datos.pdf
+# - https://www.catastro.hacienda.gob.es/webinspire/index.html
 
 curl --silent --output "$OUTDIR/Building.gml" "$WFS_BUILDINGS&typenames=bu:Building"
 if ! ogrinfo -ro -so "$OUTDIR/Building.gml" Building >/dev/null 2>&1 ; then
@@ -39,9 +41,12 @@ else
               WHEN currentUse == '4_1_office' THEN 'office'
               WHEN currentUse == '4_2_retail' THEN 'retail'
               WHEN currentUse == '4_3_publicServices' THEN 'public'
-              ELSE NULL 
-            END AS building
-          FROM Building"
+              ELSE 'yes' 
+            END AS building,
+            CASE WHEN conditionofConstruction == 'ruin' THEN 'yes' ELSE NULL END AS ruins,
+            CASE WHEN conditionofConstruction == 'declined' THEN 'yes' ELSE NULL END AS abandoned 
+          FROM Building
+          WHERE currentUse IS NOT NULL"
 fi
 
 curl --silent --output "$OUTDIR/BuildingPart.gml" "$WFS_BUILDINGS&typenames=bu:BuildingPart"
@@ -69,55 +74,99 @@ else
     -sql "SELECT 'swimming_pool' as leisure FROM OtherConstruction WHERE constructionNature = 'openAirPool'"
 fi
 
-# todo
-curl --silent --output "$OUTDIR/Address.gml" "$WFS_ADDRESSES&typenames=ad:address"
-if ! ogrinfo -ro -so "$OUTDIR/Address.gml" Address >/dev/null 2>&1 ; then
-  echo '{"type":"FeatureCollection","features":[]}' > "$OUTDIR/Address.geojson"
-else
-  ogr2ogr -f GeoJSON -s_srs ${S_SRS} -t_srs ${T_SRS} -nln Address -spat $XMIN $YMIN $XMAX $YMAX -skipfailures \
-    "$OUTDIR/Address.geojson" "$OUTDIR/Address.gml"
-fi
-
-# Merge all geojsons
+# merge all geojsons
 FILE="$OUTDIR/combined_buildings.geojson"
 npx mapshaper -quiet \
   -i "$OUTDIR/Building.geojson" -i "$OUTDIR/BuildingPart.geojson" -i "$OUTDIR/OtherConstruction.geojson" \
   -merge-layers target=Building,BuildingPart,OtherConstruction force \
   -clean allow-overlaps snap-interval=0.000001 \
-  -simplify dp 75% \
   -o format=geojson "$FILE"
 
-# Combine duplicated geometries, delete null properties, and clean object
-jq -c '
-  .features |= (
-    sort_by(.geometry | tojson)
-    | group_by(.geometry | tojson)
-    | map({
-        type: "Feature",
-        geometry: .[0].geometry,
-        properties: (
-          [ .[].properties ]
-          | add
-          | to_entries
-          | group_by(.key)
-          | map({
-              key: .[0].key,
-              value: (
-                [.[].value]
-                | unique
-                | if length == 1 then .[0] else . end
-              )
-            })
-          | from_entries
-        )
-      })
+ogr2ogr -f SQLite "$OUTDIR/db.sqlite" "$FILE" -dsco SPATIALITE=YES
+
+# apply SQL logic to clean features
+spatialite -silent "$OUTDIR/db.sqlite" <<SQL
+-- Delete building or its parts whenever are out of the bbox
+WITH bbox AS (
+  SELECT ST_GeomFromText(
+    'POLYGON((${MINLON} ${MINLAT}, ${MAXLON} ${MINLAT}, ${MAXLON} ${MAXLAT}, ${MINLON} ${MAXLAT}, ${MINLON} ${MINLAT}))',
+    ${T_SRS#EPSG:}
+  ) AS geom
+)
+DELETE FROM combined_buildings AS cb
+WHERE
+  EXISTS (
+    SELECT 1
+    FROM combined_buildings AS b, bbox
+    WHERE b.building IS NOT NULL
+      AND NOT ST_Within(b.geometry, bbox.geom)
+      AND (
+        ST_Equals(b.geometry, cb.geometry)
+        OR ST_Within(cb.geometry, b.geometry)
+      )
   )
-' "$FILE" \
-| jq -c 'walk(if type == "object" then with_entries(select(.value != null)) else . end)' \
-| jq -c '
-  .features |= map(
-    .properties |= if has("building") then del(."building:part") else . end
-  )
-' > "${FILE}.1" && mv "${FILE}.1" "$FILE"
+  OR (
+    cb."building:part" IS NOT NULL
+    AND EXISTS (
+      SELECT 1
+      FROM combined_buildings AS b2, bbox
+      WHERE b2.building IS NOT NULL
+        AND NOT ST_Within(b2.geometry, bbox.geom)
+        AND ST_Within(cb.geometry, b2.geometry)
+    )
+  );
+
+-- Copy attributes from the single part to the building
+UPDATE combined_buildings AS b
+SET "building:levels:underground" = p."building:levels:underground",
+    "building:levels" = p."building:levels",
+    min_height = p.min_height
+FROM combined_buildings AS p
+WHERE p."building:part" IS NOT NULL
+  AND b.building IS NOT NULL
+  AND ST_Equals(b.geometry, p.geometry)
+  AND (
+      SELECT COUNT(*)
+      FROM combined_buildings AS p2
+      WHERE p2."building:part" IS NOT NULL
+        AND ST_Equals(b.geometry, p2.geometry)
+  ) = 1;
+
+-- Delete the copied parts
+DELETE FROM combined_buildings
+WHERE "building:part" IS NOT NULL
+  AND EXISTS (
+      SELECT 1
+      FROM combined_buildings AS b
+      WHERE b.building IS NOT NULL
+        AND ST_Equals(b.geometry, combined_buildings.geometry)
+        AND (
+            SELECT COUNT(*)
+            FROM combined_buildings AS p2
+            WHERE p2."building:part" IS NOT NULL
+              AND ST_Equals(b.geometry, p2.geometry)
+        ) = 1
+  );
+
+-- Clear the building:part column on buildings
+UPDATE combined_buildings
+SET "building:part" = NULL
+WHERE building IS NOT NULL;
+
+-- Compute maximum building:levels from inner parts
+UPDATE combined_buildings AS b
+SET "building:levels" = (
+    SELECT MAX(CAST(p."building:levels" AS INTEGER))
+    FROM combined_buildings AS p
+    WHERE p."building:part" IS NOT NULL
+      AND ST_Within(p.geometry, b.geometry)
+)
+WHERE b.building IS NOT NULL;
+SQL
+
+ogr2ogr -f GeoJSON "${FILE}.1" "$OUTDIR/db.sqlite"
+
+# delete null properties
+jq '(.features[] | .properties) |= with_entries(select(.value != null))' "${FILE}.1" > "$FILE"
 
 echo "$FILE"
