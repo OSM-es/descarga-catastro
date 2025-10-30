@@ -86,6 +86,13 @@ button:disabled {
   display: none;
 }
 
+.github{
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
 /* Modal overlay */
 #modalOverlay {
   display: none;
