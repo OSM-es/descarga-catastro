@@ -60,8 +60,7 @@ else
             geometry,
             'yes' as \"building:part\",
             numberOfFloorsAboveGround as \"building:levels\",
-            CASE WHEN numberOfFloorsBelowGround > 0 THEN numberOfFloorsBelowGround ELSE NULL END as \"building:levels:underground\",
-            CASE WHEN heightBelowGround > 0 THEN heightBelowGround ELSE NULL END as min_height
+            CASE WHEN numberOfFloorsBelowGround > 0 THEN numberOfFloorsBelowGround ELSE NULL END as \"building:levels:underground\"
           FROM BuildingPart"
 fi
 
@@ -119,8 +118,7 @@ WHERE
 -- Copy attributes from the single part to the building
 UPDATE combined_buildings AS b
 SET "building:levels:underground" = p."building:levels:underground",
-    "building:levels" = p."building:levels",
-    min_height = p.min_height
+    "building:levels" = p."building:levels"
 FROM combined_buildings AS p
 WHERE p."building:part" IS NOT NULL
   AND b.building IS NOT NULL
