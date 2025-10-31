@@ -273,7 +273,7 @@ document.getElementById('bboxForm').addEventListener('submit', async function (e
     const publicUrl = j.publicUrl;
 
     if (document.activeElement.dataset.action  === 'josm') {  
-      const josmUrl = `http://127.0.0.1:8111/import?changeset_tags=source=${GITHUB_URL}|hashtags=catastro-es&url=${publicUrl}`;
+      const josmUrl = `http://127.0.0.1:8111/import?changeset_tags=source=Dirección General del Catastro|created_by=${GITHUB_URL}|hashtags=catastro-es&url=${publicUrl}`;
       window.open(josmUrl);
     } else {
       // trigger download
