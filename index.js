@@ -1,5 +1,3 @@
-var version = 0.1;
-
 // Inicializa mapa centrado en España
 var map = L.map('map').setView([36.5, -6.0], 6);
 
@@ -275,7 +273,7 @@ document.getElementById('bboxForm').addEventListener('submit', async function (e
     const publicUrl = j.publicUrl;
 
     if (document.activeElement.dataset.action  === 'josm') {  
-      const josmUrl = `http://127.0.0.1:8111/import?changeset_tags=source=Dirección General del Catastro|created_by=${GITHUB_URL} ${version}|hashtags=catastro-es&url=${publicUrl}`;
+      const josmUrl = `http://127.0.0.1:8111/import?changeset_tags=source=Dirección General del Catastro|created_by=${GITHUB_URL}|hashtags=catastro-es&url=${publicUrl}`;
       window.open(josmUrl);
     } else {
       // trigger download
