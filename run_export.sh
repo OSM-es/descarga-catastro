@@ -145,20 +145,21 @@ WHERE combined_buildings.building IS NOT NULL
   AND p."building:part" IS NOT NULL
   AND ST_Equals(combined_buildings.geometry, p.geometry);
 
--- Delete the copied parts
+-- Delete the copied parts and building:levels=0 as not possible
 DELETE FROM combined_buildings
-WHERE "building:part" IS NOT NULL
-  AND EXISTS (
-      SELECT 1
-      FROM combined_buildings AS b
-      WHERE b.building IS NOT NULL
-        AND ST_Equals(b.geometry, combined_buildings.geometry)
-        AND (
-            SELECT COUNT(*)
-            FROM combined_buildings AS p2
-            WHERE p2."building:part" IS NOT NULL
-              AND ST_Equals(b.geometry, p2.geometry)
-        ) = 1
+WHERE
+  (
+    "building:part" IS NOT NULL
+    AND EXISTS (
+        SELECT 1
+        FROM combined_buildings AS b
+        WHERE b.building IS NOT NULL
+          AND ST_Equals(b.geometry, combined_buildings.geometry)
+    )
+  )
+  OR
+  (
+    CAST("building:levels" AS INTEGER) = 0
   );
 SQL
 
