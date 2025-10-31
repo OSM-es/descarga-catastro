@@ -17,9 +17,9 @@ body {
 }
 
 #side {
-  width: 340px;
+  width: max-content;
   min-width: 240px;
-  max-width: 40%;
+  max-width: 50%;
   background: #f8f9fa;
   box-shadow: -2px 0 6px rgba(0, 0, 0, 0.08);
   padding: 16px;
@@ -40,15 +40,6 @@ label {
   color: #333;
 }
 
-input[type="text"] {
-  width: 100%;
-  padding: 8px;
-  box-sizing: border-box;
-  margin-top: 4px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
 button {
   margin-top: 12px;
   padding: 10px;
@@ -64,16 +55,29 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.bbox-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, max-content));
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+
+.bbox-text {
+  font-family: monospace;
+  font-size: 0.95rem;
+  color: #111;
+  padding: 2px 4px;
+}
+
+.bbox-text.empty {
+  color: #9aa0a6;
+}
+
 .note {
   margin-top: 8px;
   font-size: 12px;
   color: #555;
-}
-
-.bbox-values {
-  margin-top: 10px;
-  font-size: 13px;
-  color: #222;
 }
 
 .dialog {
@@ -152,10 +156,8 @@ button:disabled {
     border-top-right-radius: 12px;
   }
 
-  /* Ajustes de formulario y botones */
-  input[type="text"] {
-    padding: 10px;
-    font-size: 15px;
+  .bbox-row {
+    grid-template-columns: repeat(2, minmax(0, max-content));
   }
 
   button {
@@ -178,13 +180,6 @@ button:disabled {
     width: auto;
   }
 
-  /* ocultar campos de coordenadas y botón copiar en móvil */
-  #bboxForm label,
-  #bboxForm input[type="text"],
-  #copyBtn {
-    display: none;
-  }
-
   /* ajustar espaciado del botón principal cuando inputs ocultos */
   #exportBtn {
     width: 100%;
@@ -196,9 +191,5 @@ button:disabled {
 @media (min-width: 721px) and (max-width: 1024px) {
   #map {
     height: 65vh;
-  }
-
-  #side {
-    max-width: 360px;
   }
 }

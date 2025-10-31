@@ -2,61 +2,64 @@
 
 <html lang="es">
 
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Descarga catastro</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
-    <link rel="stylesheet" href="./index.css" />
-  </head>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Descarga catastro</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
+  <link rel="stylesheet" href="./index.css" />
+</head>
 
-  <body>
-    <div id="app">
-      <div id="map"></div>
+<body>
+  <div id="app">
+    <div id="map"></div>
 
-      <div id="side">
-        <h2>Descarga catastro</h2>
-        <div class="note">Dibuja un rectángulo en el mapa o introduce coordenadas. Máx 0.5 km².</div>
-        <div class="note">En caso de que dicho rectángulo atraviese edificios o partes, estos no serán incluídos en la descarga.</div>
+    <div id="side">
+      <h2>Descarga edificios catastro</h2>
+      <div class="note">Dibuja un rectángulo en el mapa o introduce coordenadas. Máx 0.5 km².</div>
+      <div class="note">En caso de que dicho rectángulo atraviese edificios o partes, estos no serán incluídos en la
+        descarga.</div>
 
-        <form id="bboxForm" method="post" action="/export">
-          <label for="xmin">xmin (west)</label>
-          <input id="xmin" name="xmin" type="text" required />
-
-          <label for="ymin">ymin (south)</label>
-          <input id="ymin" name="ymin" type="text" required />
-
-          <label for="xmax">xmax (east)</label>
-          <input id="xmax" name="xmax" type="text" required />
-
-          <label for="ymax">ymax (north)</label>
-          <input id="ymax" name="ymax" type="text" required />
-
-          <div class="bbox-values" id="areaInfo">Área estimada: —</div>
-
-          <div class="dialog" id="tooLarge">Acércate — el área máxima permitida es 0.5 km².</div>
-
-          <button id="exportBtn" type="submit">Descargar</button>
-          <button id="copyBtn" type="button">Copiar coords</button>
-        </form>
-
-      </div>
-    </div>
-
-    <!-- Modal -->
-    <div id="modalOverlay" role="dialog" aria-modal="true">
-      <div id="modalBox">
-        <div id="modalMsg" style="font-weight:600">Generando fichero, espera…</div>
-        <div id="progressBar">
-          <div id="progressFill"></div>
+      <form id="bboxForm" class="note" method="post" action="/export" autocomplete="off">
+        <div class="bbox-row">
+          <span id="xmin" data-placeholder="xmin" class="bbox-text empty">xmin</span>
+          <span id="ymin" data-placeholder="ymin" class="bbox-text empty">ymin</span>
+          <span id="xmax" data-placeholder="xmax" class="bbox-text empty">xmax</span>
+          <span id="ymax" data-placeholder="ymax" class="bbox-text empty">ymax</span>
         </div>
+
+        <input type="hidden" name="xmin" id="xmin_input" />
+        <input type="hidden" name="ymin" id="ymin_input" />
+        <input type="hidden" name="xmax" id="xmax_input" />
+        <input type="hidden" name="ymax" id="ymax_input" />
+
+        <div class="note" id="areaInfo">Área estimada: —</div>
+
+        <div class="dialog" id="tooLarge" style="display:none;">Acércate — el área máxima permitida es 0.5 km².</div>
+
+        <button id="exportBtn" type="submit" data-action="download" disabled>Descargar</button>
+        <button id="josmBtn" type="submit" data-action="josm" disabled>JOSM</button>
+
+        <button id="copyBtn" type="button">Copiar coords</button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="modalOverlay" role="dialog" aria-modal="true">
+    <div id="modalBox">
+      <div id="modalMsg" style="font-weight:600">Generando fichero, espera…</div>
+      <div id="progressBar">
+        <div id="progressFill"></div>
       </div>
     </div>
+  </div>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
-    <script src="./index.js" type="module"></script>
-  </body>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+  <script src="./index.js" type="module"></script>
+</body>
 
 </html>
