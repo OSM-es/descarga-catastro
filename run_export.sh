@@ -26,6 +26,14 @@ OUTDIR=$(mktemp -d)
 # - https://www.catastro.hacienda.gob.es/webinspire/index.html
 
 curl --silent --output "$OUTDIR/Building.gml" "$WFS_BUILDINGS&typenames=bu:Building"
+
+# Check that Cadastre is not blocking our request, if so return the response as a HTML file
+read -n 6 -r first_line < "$OUTDIR/Building.gml"
+if [[ "$first_line" == "<html>" ]]; then
+  echo "$OUTDIR/Building.gml"
+  exit
+fi
+
 if ! ogrinfo -ro -so "$OUTDIR/Building.gml" Building >/dev/null 2>&1 ; then
   echo '{"type":"FeatureCollection","features":[]}' > "$OUTDIR/Building.geojson"
 else

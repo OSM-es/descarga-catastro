@@ -272,6 +272,17 @@ document.getElementById('bboxForm').addEventListener('submit', async function (e
 
     const publicUrl = j.publicUrl;
 
+    fetch(publicUrl)
+    .then(response => response.text())
+    .then(content => {
+      const firstLine = content.slice(0, 6);
+
+      if (firstLine === '<html>') {
+        alert('Catastro devuelve un error al descargar los datos. ¿Estás intentando acceder desde fuera de España?')
+      }
+    })
+
+
     if (document.activeElement.dataset.action  === 'josm') {  
       const josmUrl = `http://127.0.0.1:8111/import?changeset_tags=source=Dirección General del Catastro|created_by=${GITHUB_URL}|hashtags=catastro-es&url=${publicUrl}`;
       window.open(josmUrl);
