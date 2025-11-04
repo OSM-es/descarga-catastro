@@ -6,20 +6,28 @@ const baseLayers = {
   'OpenStreetMap': osm
 };
 
-const overlays = {
-  'PNOA': L.tileLayer('https://tms-pnoa-ma.idee.es/1.0.0/pnoa-ma/{z}/{x}/{-y}.jpeg', { attribution: 'PNOA', maxZoom: 20 }),
-  'Catastro': L.tileLayer.wms('https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx?', {
+const catastroWMS = L.tileLayer.wms('https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx?', {
     layers: 'Catastro',
     format: 'image/jpeg',
     transparent: true,
     attribution: 'Catastro',
     maxZoom: 20
-  }),
+  })
+const overlays = {
+  'PNOA': L.tileLayer('https://tms-pnoa-ma.idee.es/1.0.0/pnoa-ma/{z}/{x}/{-y}.jpeg', { attribution: 'PNOA', maxZoom: 20 }),
+  'Catastro': catastroWMS,
 }
+
+// Handle Catastro tiles errors
+const errorPopup = L.popup({ closeButton: true, autoClose: true });
+catastroWMS.on('tileerror', function() {
+  const errorMessage = "Las teselas de Catastro devuelven error. ¿Estás intentando acceder desde fuera de España?";
+  errorPopup.setContent(errorMessage).setLatLng(map.getCenter());
+  map.addLayer(errorPopup);
+});
 
 L.control.layers(baseLayers, overlays).addTo(map);
 
-// Control de dibujo (solo rectángulo)
 var drawnLayer = null;
 var drawnItems = new L.FeatureGroup().addTo(map);
 var drawControl = new L.Control.Draw({
