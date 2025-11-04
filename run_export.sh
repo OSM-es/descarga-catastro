@@ -79,7 +79,9 @@ if ogrinfo -ro -so "$OUTDIR/OtherConstruction.gml" OtherConstruction >/dev/null 
     -sql "SELECT 'swimming_pool' as leisure FROM OtherConstruction WHERE constructionNature = 'openAirPool'"
 fi
 
-if [ ! -f "$OUTDIR/Building.geojson" ] && [ ! -f "$OUTDIR/BuildingPart.geojson" ] && [ ! -f "$OUTDIR/OtherConstruction.geojson" ]; then
+# If geojsons are null or have no features, fast return
+if [ ! -f "$OUTDIR/Building.geojson" ] && [ ! -f "$OUTDIR/BuildingPart.geojson" ] && [ ! -f "$OUTDIR/OtherConstruction.geojson" ] \
+ || jq -s '[.[] | (.features // []) | length] | add == 0' "$OUTDIR"/*.geojson >/dev/null 2>&1; then
   echo "No hay datos en la zona seleccionada." >&2
   exit 1
 fi
