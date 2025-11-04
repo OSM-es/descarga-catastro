@@ -72,7 +72,7 @@ else
             geometry,
             'yes' as \"building:part\",
             numberOfFloorsAboveGround as \"building:levels\",
-            CASE WHEN numberOfFloorsBelowGround > 0 THEN numberOfFloorsBelowGround ELSE NULL END as \"building:levels:underground\"
+            numberOfFloorsBelowGround as \"building:levels:underground\"
           FROM BuildingPart"
 fi
 
@@ -127,16 +127,6 @@ WHERE
     )
   );
 
--- Remove building:parts that are not inside any building
-DELETE FROM combined_buildings AS p
-WHERE p."building:part" IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM combined_buildings AS b
-      WHERE b.building IS NOT NULL
-        AND ST_Within(p.geometry, b.geometry)
-  );
-
 -- Compute maximum building:levels from inner parts
 UPDATE combined_buildings AS b
 SET "building:levels" = (
@@ -169,10 +159,6 @@ WHERE
           AND ST_Equals(b.geometry, combined_buildings.geometry)
     )
   )
-  OR
-  (
-    CAST("building:levels" AS INTEGER) = 0
-  );
 SQL
 
 ogr2ogr -f GeoJSON "${FILE}.1" "$OUTDIR/db.sqlite"
