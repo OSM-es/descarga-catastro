@@ -38,9 +38,7 @@ done
 
 OUTDIR=$(mktemp -d)
 curl --silent --output "$OUTDIR/Building.gml" "$WFS_BUILDINGS&typenames=bu:Building"
-if ! ogrinfo -ro -so "$OUTDIR/Building.gml" Building >/dev/null 2>&1 ; then
-  echo '{"type":"FeatureCollection","features":[]}' > "$OUTDIR/Building.geojson"
-else
+if ogrinfo -ro -so "$OUTDIR/Building.gml" Building >/dev/null 2>&1 ; then
   ogr2ogr -f GeoJSON -s_srs ${S_SRS} -t_srs ${T_SRS} -nln Building -spat $XMIN $YMIN $XMAX $YMAX -skipfailures -explodecollections \
     "$OUTDIR/Building.geojson" "$OUTDIR/Building.gml" \
     -dialect sqlite \
@@ -62,9 +60,7 @@ else
 fi
 
 curl --silent --output "$OUTDIR/BuildingPart.gml" "$WFS_BUILDINGS&typenames=bu:BuildingPart"
-if ! ogrinfo -ro -so "$OUTDIR/BuildingPart.gml" BuildingPart >/dev/null 2>&1 ; then
-  echo '{"type":"FeatureCollection","features":[]}' > "$OUTDIR/BuildingPart.geojson"
-else
+if ogrinfo -ro -so "$OUTDIR/BuildingPart.gml" BuildingPart >/dev/null 2>&1 ; then
   ogr2ogr -f GeoJSON -s_srs ${S_SRS} -t_srs ${T_SRS} -nln BuildingPart -spat $XMIN $YMIN $XMAX $YMAX -skipfailures \
     "$OUTDIR/BuildingPart.geojson" "$OUTDIR/BuildingPart.gml" \
     -dialect sqlite \
@@ -77,18 +73,21 @@ else
 fi
 
 curl --silent --output "$OUTDIR/OtherConstruction.gml" "$WFS_BUILDINGS&typenames=bu:OtherConstruction"
-if ! ogrinfo -ro -so "$OUTDIR/OtherConstruction.gml" OtherConstruction >/dev/null 2>&1 ; then
-  echo '{"type":"FeatureCollection","features":[]}' > "$OUTDIR/OtherConstruction.geojson"
-else
+if ogrinfo -ro -so "$OUTDIR/OtherConstruction.gml" OtherConstruction >/dev/null 2>&1 ; then
   ogr2ogr -f GeoJSON -s_srs ${S_SRS} -t_srs ${T_SRS} -nln OtherConstruction -spat $XMIN $YMIN $XMAX $YMAX -skipfailures \
     "$OUTDIR/OtherConstruction.geojson" "$OUTDIR/OtherConstruction.gml" \
     -sql "SELECT 'swimming_pool' as leisure FROM OtherConstruction WHERE constructionNature = 'openAirPool'"
 fi
 
+if [ ! -f "$OUTDIR/Building.geojson" ] && [ ! -f "$OUTDIR/BuildingPart.geojson" ] && [ ! -f "$OUTDIR/OtherConstruction.geojson" ]; then
+  echo "No hay datos en la zona seleccionada." >&2
+  exit 1
+fi
+
 # merge all geojsons
 FILE="$OUTDIR/combined_buildings.geojson"
 npx mapshaper -quiet \
-  -i "$OUTDIR/Building.geojson" -i "$OUTDIR/BuildingPart.geojson" -i "$OUTDIR/OtherConstruction.geojson" \
+  -i "$OUTDIR"/*.geojson \
   -merge-layers target=Building,BuildingPart,OtherConstruction force \
   -clean allow-overlaps snap-interval=0.000001 \
   -o format=geojson "$FILE"
