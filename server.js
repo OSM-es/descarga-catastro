@@ -46,7 +46,7 @@ app.post('/export', (req, res) => {
 
   child.on('close', code => {
     clearTimeout(timeout);
-    if (code !== 0) return res.status(500).send('Script error:\n' + stderr);
+    if (code !== 0) return res.status(500).send(stderr);
 
     const outpath = stdout.trim();
     if (!outpath || !fs.existsSync(outpath)) return res.status(500).send('Output file not found');

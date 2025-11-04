@@ -1,9 +1,6 @@
 #!/bin/bash
 set -e
 
-# Global catch
-trap 'echo "Something went wrong"; exit 1' ERR
-
 if [ "$#" -ne 4 ]; then
   echo "Uso: $0 minLon minLat maxLon maxLat"
   exit 1
@@ -22,12 +19,24 @@ read XMAX YMAX < <(echo "$MAXLON $MAXLAT" | cs2cs +init=${T_SRS} +to +init=${S_S
 BBOX="${XMIN},${YMIN},${XMAX},${YMAX}"
 WFS_BUILDINGS="http://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx?service=wfs&version=2&request=GetFeature&bbox=$BBOX&srsname=${S_SRS}"
 WFS_ADDRESSES="http://ovc.catastro.meh.es/INSPIRE/wfsAD.aspx?service=wfs&version=2&request=GetFeature&bbox=$BBOX&srsname=${S_SRS}"
-OUTDIR=$(mktemp -d)
+
+# Check Catastro urls
+for URL in "$WFS_BUILDINGS" "$WFS_ADDRESSES"; do
+  RESPONSE=$(curl -s -w "%{http_code}" "$URL")
+  HTTP="${RESPONSE: -3}"       # últimos 3 caracteres = HTTP
+  BODY="${RESPONSE::-3}"       # resto = cuerpo de la respuesta
+
+  if [ "$HTTP" -ne 200 ]; then
+    echo -e "$HTTP: $URL\n\nRespuesta del servidor:\n\n$BODY" >&2
+    exit 1
+  fi
+done
 
 # DOCS: 
 # - https://www.catastro.hacienda.gob.es/webinspire/documentos/Conjuntos%20de%20datos.pdf
 # - https://www.catastro.hacienda.gob.es/webinspire/index.html
 
+OUTDIR=$(mktemp -d)
 curl --silent --output "$OUTDIR/Building.gml" "$WFS_BUILDINGS&typenames=bu:Building"
 if ! ogrinfo -ro -so "$OUTDIR/Building.gml" Building >/dev/null 2>&1 ; then
   echo '{"type":"FeatureCollection","features":[]}' > "$OUTDIR/Building.geojson"
