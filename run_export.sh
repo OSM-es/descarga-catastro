@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Global catch
+trap 'echo "Something went wrong"; exit 1' ERR
+
 if [ "$#" -ne 4 ]; then
   echo "Uso: $0 minLon minLat maxLon maxLat"
   exit 1
@@ -169,3 +172,4 @@ ogr2ogr -f GeoJSON "${FILE}.1" "$OUTDIR/db.sqlite"
 jq -c '(.features[] | .properties) |= with_entries(select(.value != null))' "${FILE}.1" > "$FILE"
 
 echo "$FILE"
+exit 0
