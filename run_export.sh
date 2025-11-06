@@ -17,27 +17,24 @@ read XMIN YMIN < <(echo "$MINLON $MINLAT" | cs2cs +init=${T_SRS} +to +init=${S_S
 read XMAX YMAX < <(echo "$MAXLON $MAXLAT" | cs2cs +init=${T_SRS} +to +init=${S_SRS} -f "%.3f" | awk '{print $1, $2}')
 
 BBOX="${XMIN},${YMIN},${XMAX},${YMAX}"
-WFS_BUILDINGS="http://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx?service=wfs&version=2&request=GetFeature&bbox=$BBOX&srsname=${S_SRS}"
-WFS_ADDRESSES="http://ovc.catastro.meh.es/INSPIRE/wfsAD.aspx?service=wfs&version=2&request=GetFeature&bbox=$BBOX&srsname=${S_SRS}"
+WFS="http://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx?service=wfs&version=2&request=GetFeature&bbox=$BBOX&srsname=${S_SRS}"
 
-# Check Catastro urls
-for URL in "$WFS_BUILDINGS" "$WFS_ADDRESSES"; do
-  RESPONSE=$(curl -s -w "%{http_code}" "$URL")
-  HTTP="${RESPONSE: -3}"       # últimos 3 caracteres = HTTP
-  BODY="${RESPONSE::-3}"       # resto = cuerpo de la respuesta
+# Check Catastro url availability
+RESPONSE=$(curl -s -w "%{http_code}" "$WFS")
+HTTP="${RESPONSE: -3}"       # last 3 chars = HTTP
+BODY="${RESPONSE::-3}"       # rest = response body
 
-  if [ "$HTTP" -ne 200 ]; then
-    echo -e "$HTTP: $URL\n\nRespuesta del servidor:\n\n$BODY" >&2
-    exit 1
-  fi
-done
+if [ "$HTTP" -ne 200 ]; then
+  echo -e "$HTTP: $WFS\n\nRespuesta del servidor:\n\n$BODY" >&2
+  exit 1
+fi
 
 # DOCS: 
 # - https://www.catastro.hacienda.gob.es/webinspire/documentos/Conjuntos%20de%20datos.pdf
 # - https://www.catastro.hacienda.gob.es/webinspire/index.html
 
 OUTDIR=$(mktemp -d)
-curl --silent --output "$OUTDIR/Building.gml" "$WFS_BUILDINGS&typenames=bu:Building"
+curl --silent --output "$OUTDIR/Building.gml" "$WFS&typenames=bu:Building"
 if ogrinfo -ro -so "$OUTDIR/Building.gml" Building >/dev/null 2>&1 ; then
   ogr2ogr -f GeoJSON -s_srs ${S_SRS} -t_srs ${T_SRS} -nln Building -spat $XMIN $YMIN $XMAX $YMAX -skipfailures -explodecollections \
     "$OUTDIR/Building.geojson" "$OUTDIR/Building.gml" \
@@ -59,7 +56,7 @@ if ogrinfo -ro -so "$OUTDIR/Building.gml" Building >/dev/null 2>&1 ; then
           WHERE currentUse IS NOT NULL"
 fi
 
-curl --silent --output "$OUTDIR/BuildingPart.gml" "$WFS_BUILDINGS&typenames=bu:BuildingPart"
+curl --silent --output "$OUTDIR/BuildingPart.gml" "$WFS&typenames=bu:BuildingPart"
 if ogrinfo -ro -so "$OUTDIR/BuildingPart.gml" BuildingPart >/dev/null 2>&1 ; then
   ogr2ogr -f GeoJSON -s_srs ${S_SRS} -t_srs ${T_SRS} -nln BuildingPart -spat $XMIN $YMIN $XMAX $YMAX -skipfailures \
     "$OUTDIR/BuildingPart.geojson" "$OUTDIR/BuildingPart.gml" \
@@ -72,7 +69,7 @@ if ogrinfo -ro -so "$OUTDIR/BuildingPart.gml" BuildingPart >/dev/null 2>&1 ; the
           FROM BuildingPart"
 fi
 
-curl --silent --output "$OUTDIR/OtherConstruction.gml" "$WFS_BUILDINGS&typenames=bu:OtherConstruction"
+curl --silent --output "$OUTDIR/OtherConstruction.gml" "$WFS&typenames=bu:OtherConstruction"
 if ogrinfo -ro -so "$OUTDIR/OtherConstruction.gml" OtherConstruction >/dev/null 2>&1 ; then
   ogr2ogr -f GeoJSON -s_srs ${S_SRS} -t_srs ${T_SRS} -nln OtherConstruction -spat $XMIN $YMIN $XMAX $YMAX -skipfailures \
     "$OUTDIR/OtherConstruction.geojson" "$OUTDIR/OtherConstruction.gml" \
