@@ -278,10 +278,8 @@ document.getElementById('bboxForm').addEventListener('submit', async function (e
     const j = await resp.json();
     if (!j.ok || !j.publicUrl) throw new Error('No public URL returned');
 
-    const publicUrl = j.publicUrl;
-
-    if (document.activeElement.dataset.action  === 'josm') {  
-      const josmUrl = `http://127.0.0.1:8111/import?changeset_tags=source=Dirección General del Catastro|created_by=${GITHUB_URL}|hashtags=catastro-es&url=${publicUrl}`;
+    if (document.activeElement.dataset.action  === 'josm') {
+      const josmUrl = `http://127.0.0.1:8111/import?new_layer=true&changeset_tags=source=Dirección General del Catastro|created_by=${GITHUB_URL}|hashtags=catastro-es&url=${j.publicUrl}`;
       window.open(josmUrl);
     } else {
       // trigger download

@@ -51,16 +51,19 @@ app.post('/export', (req, res) => {
     const outpath = stdout.trim();
     if (!outpath || !fs.existsSync(outpath)) return res.status(500).send('Output file not found');
 
-    // Si outpath ya está dentro del PUBLIC_DIR lo usamos; si no, copiamos
     const rel = path.relative(PUBLIC_DIR, outpath).replace(/\\/g, '/');
     let finalPath = outpath;
 
     if (rel.startsWith('..')) {
-      const id = makeId();
-      const destDir = path.join(EXPORTS_BASE, id);
-      fs.mkdirSync(destDir, { recursive: true });
-      finalPath = path.join(destDir, 'combined_buildings.geojson');
-      try { fs.copyFileSync(outpath, finalPath); } catch (err) {
+      const tmpDir = path.dirname(outpath);
+      const hash = path.basename(tmpDir).slice(4);
+      const filename = `combined_buildings_${hash}.geojson`;
+
+      finalPath = path.join(EXPORTS_BASE, filename);
+
+      try {
+        fs.copyFileSync(outpath, finalPath);
+      } catch (err) {
         console.error('copy error', err);
         return res.status(500).send('Failed to copy output file');
       }
