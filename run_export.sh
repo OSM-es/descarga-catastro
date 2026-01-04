@@ -52,8 +52,7 @@ if ogrinfo -ro -so "$OUTDIR/Building.gml" Building >/dev/null 2>&1 ; then
             END AS building,
             CASE WHEN conditionofConstruction == 'ruin' THEN 'yes' ELSE NULL END AS ruins,
             CASE WHEN conditionofConstruction == 'declined' THEN 'yes' ELSE NULL END AS abandoned 
-          FROM Building
-          WHERE currentUse IS NOT NULL"
+          FROM Building"
 fi
 
 curl --silent --output "$OUTDIR/BuildingPart.gml" "$WFS&typenames=bu:BuildingPart"
