@@ -50,8 +50,8 @@ if ogrinfo -ro -so "$OUTDIR/Building.gml" Building >/dev/null 2>&1 ; then
               WHEN currentUse == '4_3_publicServices' THEN 'public'
               ELSE 'yes' 
             END AS building,
-            CASE WHEN conditionofConstruction == 'ruin' THEN 'yes' ELSE NULL END AS ruins,
-            CASE WHEN conditionofConstruction == 'declined' THEN 'yes' ELSE NULL END AS abandoned 
+            CASE WHEN conditionOfConstruction == 'ruin' THEN 'yes' ELSE NULL END AS ruins,
+            CASE WHEN conditionOfConstruction == 'declined' THEN 'yes' ELSE NULL END AS abandoned 
           FROM Building"
 fi
 
