@@ -35,6 +35,11 @@ var drawControl = new L.Control.Draw({
 });
 map.addControl(drawControl);
 
+const search = new GeoSearch.GeoSearchControl({
+  provider: new GeoSearch.OpenStreetMapProvider(),
+});
+map.addControl(search);
+
 const github = L.control({ position: 'topleft' });
 const GITHUB_URL = "https://github.com/OSM-es/descarga-catastro"
 github.onAdd = function () {

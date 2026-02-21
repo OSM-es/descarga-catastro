@@ -15,6 +15,7 @@
   <link rel="canonical" href="https://descarga-catastro.openstreetmap.es/">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch/dist/geosearch.css" />
   <link rel="stylesheet" href="./index.css" />
 </head>
 
@@ -24,7 +25,7 @@
 
     <div id="side">
       <h2>Descarga edificios catastro</h2>
-      <div class="note">Dibuja un rectángulo en el mapa o introduce coordenadas. Máx 0.5 km².</div>
+      <div class="note">Dibuja un rectángulo en el mapa. Máx 0.5 km².</div>
       <div class="note">En caso de que dicho rectángulo atraviese edificios o partes, estos no serán incluidos en la
         descarga.</div>
 
@@ -47,7 +48,6 @@
 
         <button id="exportBtn" type="submit" data-action="download" disabled>Descargar</button>
         <button id="josmBtn" type="submit" data-action="josm" disabled>JOSM</button>
-
         <button id="copyBtn" type="button">Copiar coords</button>
       </form>
 
@@ -68,6 +68,7 @@
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+  <script src="https://unpkg.com/leaflet-geosearch@latest/dist/bundle.min.js"></script>
   <script src="./index.js" type="module"></script>
 </body>
 
