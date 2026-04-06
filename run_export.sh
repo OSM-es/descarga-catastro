@@ -90,92 +90,95 @@ npx mapshaper -quiet \
   -clean allow-overlaps snap-interval=0.000001 \
   -o format=geojson "$FILE"
 
-ogr2ogr -f SQLite "$OUTDIR/db.sqlite" "$FILE" -dsco SPATIALITE=YES
+# No need to clean any feature if there is no buildings
+if jq -e -s '[.[] | (.features // []) | length] | add > 0' "$OUTDIR/Building.geojson" "$OUTDIR/BuildingPart.geojson" >/dev/null 2>&1; then
+  ogr2ogr -f SQLite "$OUTDIR/db.sqlite" "$FILE" -dsco SPATIALITE=YES
 
-# apply SQL logic to clean features
-spatialite -silent "$OUTDIR/db.sqlite" <<SQL
+  # apply SQL logic to clean features
+  spatialite -silent "$OUTDIR/db.sqlite" <<SQL
 -- Delete building or its parts whenever are out of the bbox
 WITH bbox AS (
-  SELECT ST_GeomFromText(
-    'POLYGON((${MINLON} ${MINLAT}, ${MAXLON} ${MINLAT}, ${MAXLON} ${MAXLAT}, ${MINLON} ${MAXLAT}, ${MINLON} ${MINLAT}))',
-    ${T_SRS#EPSG:}
-  ) AS geom
+SELECT ST_GeomFromText(
+	'POLYGON((${MINLON} ${MINLAT}, ${MAXLON} ${MINLAT}, ${MAXLON} ${MAXLAT}, ${MINLON} ${MAXLAT}, ${MINLON} ${MINLAT}))',
+	${T_SRS#EPSG:}
+) AS geom
 )
 DELETE FROM combined_buildings AS cb
 WHERE
-  EXISTS (
-    SELECT 1
-    FROM combined_buildings AS b, bbox
-    WHERE b.building IS NOT NULL
-      AND NOT ST_Within(b.geometry, bbox.geom)
-      AND (
-        ST_Equals(b.geometry, cb.geometry)
-        OR ST_Within(cb.geometry, b.geometry)
-      )
-  )
-  OR (
-    cb."building:part" IS NOT NULL
-    AND EXISTS (
-      SELECT 1
-      FROM combined_buildings AS b2, bbox
-      WHERE b2.building IS NOT NULL
-        AND NOT ST_Within(b2.geometry, bbox.geom)
-        AND ST_Within(cb.geometry, b2.geometry)
-    )
-  );
+EXISTS (
+	SELECT 1
+	FROM combined_buildings AS b, bbox
+	WHERE b.building IS NOT NULL
+	AND NOT ST_Within(b.geometry, bbox.geom)
+	AND (
+		ST_Equals(b.geometry, cb.geometry)
+		OR ST_Within(cb.geometry, b.geometry)
+	)
+)
+OR (
+	cb."building:part" IS NOT NULL
+	AND EXISTS (
+	SELECT 1
+	FROM combined_buildings AS b2, bbox
+	WHERE b2.building IS NOT NULL
+		AND NOT ST_Within(b2.geometry, bbox.geom)
+		AND ST_Within(cb.geometry, b2.geometry)
+	)
+);
 
 -- Remove building:parts that are not inside any building
 DELETE FROM combined_buildings AS p
 WHERE p."building:part" IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM combined_buildings AS b
-      WHERE b.building IS NOT NULL
-        AND ST_Within(p.geometry, b.geometry)
-  );
+AND NOT EXISTS (
+	SELECT 1
+	FROM combined_buildings AS b
+	WHERE b.building IS NOT NULL
+		AND ST_Within(p.geometry, b.geometry)
+);
 
 -- Compute maximum building:levels from inner parts
 UPDATE combined_buildings AS b
 SET "building:levels" = (
-    SELECT MAX(CAST(p."building:levels" AS INTEGER))
-    FROM combined_buildings AS p
-    WHERE p."building:part" IS NOT NULL
-      AND ST_Within(p.geometry, b.geometry)
+	SELECT MAX(CAST(p."building:levels" AS INTEGER))
+	FROM combined_buildings AS p
+	WHERE p."building:part" IS NOT NULL
+	AND ST_Within(p.geometry, b.geometry)
 )
 WHERE b.building IS NOT NULL;
 
 -- If there is only one part identical to the building itself, then copy the attributes
 UPDATE combined_buildings
 SET
-    "building:levels:underground" = p."building:levels:underground",
-    "building:levels" = p."building:levels"
+	"building:levels:underground" = p."building:levels:underground",
+	"building:levels" = p."building:levels"
 FROM combined_buildings AS p
 WHERE combined_buildings.building IS NOT NULL
-  AND p."building:part" IS NOT NULL
-  AND ST_Equals(combined_buildings.geometry, p.geometry);
+AND p."building:part" IS NOT NULL
+AND ST_Equals(combined_buildings.geometry, p.geometry);
 
 -- Delete the copied parts and building:levels=0 as not possible
 DELETE FROM combined_buildings
 WHERE
-  (
-    "building:part" IS NOT NULL
-    AND EXISTS (
-        SELECT 1
-        FROM combined_buildings AS b
-        WHERE b.building IS NOT NULL
-          AND ST_Equals(b.geometry, combined_buildings.geometry)
-    )
-  )
-  OR
-  (
-    CAST("building:levels" AS INTEGER) = 0
-  );
+(
+	"building:part" IS NOT NULL
+	AND EXISTS (
+		SELECT 1
+		FROM combined_buildings AS b
+		WHERE b.building IS NOT NULL
+		AND ST_Equals(b.geometry, combined_buildings.geometry)
+	)
+)
+OR
+(
+	CAST("building:levels" AS INTEGER) = 0
+);
 SQL
 
-ogr2ogr -f GeoJSON "${FILE}.1" "$OUTDIR/db.sqlite"
+  ogr2ogr -f GeoJSON "${FILE}" "$OUTDIR/db.sqlite"
+fi
 
 # delete null properties
-jq -c '(.features[] | .properties) |= with_entries(select(.value != null))' "${FILE}.1" > "$FILE"
+jq -c '(.features[] | .properties) |= with_entries(select(.value != null))' "${FILE}" > "${FILE}.tmp" && mv "${FILE}.tmp" "$FILE"
 
 echo "$FILE"
 exit 0
