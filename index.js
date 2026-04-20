@@ -54,65 +54,66 @@ github.addTo(map);
 // key en sessionStorage
 const MAP_VIEW = 'descarga-catastro_mapview';
 
-// guarda viewport: centro + zoom y bounds (opcional)
-function saveMapView(map) {
-  try {
-    const center = map.getCenter();
-    const zoom = map.getZoom();
-    const bounds = map.getBounds();
-    const view = {
-      center: { lat: center.lat, lng: center.lng },
-      zoom: zoom,
-      bounds: {
-        southWest: { lat: bounds.getSouthWest().lat, lng: bounds.getSouthWest().lng },
-        northEast: { lat: bounds.getNorthEast().lat, lng: bounds.getNorthEast().lng }
-      },
-      timestamp: Date.now()
-    };
-    sessionStorage.setItem(MAP_VIEW, JSON.stringify(view));
-  } catch (e) {
-    console.warn('saveMapView failed', e);
-  }
+// parsea hash #map=zoom/lat/lng (acepta zoom entero)
+function parseHashMap() {
+  const hash = window.location.hash;
+  if (!hash) return null;
+
+  const match = hash.match(
+    /^#map=(\d+)\/([-+]?\d+(?:\.\d+)?)\/([-+]?\d+(?:\.\d+)?)/
+  );
+  if (!match) return null;
+
+  const zoom = Number(match[1]);
+  const lat  = Number(match[2]);
+  const lng  = Number(match[3]);
+
+  if (![zoom, lat, lng].every(Number.isFinite)) return null;
+
+  return { center: [lat, lng], zoom };
 }
 
-// restaura viewport si existe; devuelve true si aplicó algo
-function restoreMapView(map) {
-  try {
-    const raw = sessionStorage.getItem(MAP_VIEW);
-    if (!raw) return false;
-    const view = JSON.parse(raw);
-    if (!view) return false;
+// establece vista inicial: hash -> default
+function initMapFromHash() {
+  const hashState = parseHashMap();
 
-    // Preferir centro+zoom; si no está, usar bounds
-    if (view.center && typeof view.zoom === 'number') {
-      map.setView([view.center.lat, view.center.lng], view.zoom);
-      return true;
-    } else if (view.bounds && view.bounds.southWest && view.bounds.northEast) {
-      const sw = view.bounds.southWest;
-      const ne = view.bounds.northEast;
-      map.fitBounds([[sw.lat, sw.lng], [ne.lat, ne.lng]]);
-      return true;
-    }
-  } catch (e) {
-    console.warn('restoreMapView failed', e);
+  if (hashState) {
+    const { center, zoom } = hashState;
+    map.setView(center, zoom);
+    return;
   }
-  return false;
+
+  updateHash();
 }
 
-// Hookear eventos: guarda cuando el usuario mueve/zoom el mapa
-function attachMapViewPersistence(map) {
-  // guardar de forma debounced para no spamear sessionStorage
+// actualiza hash al mover/zoom (4 decimales)
+function updateHash() {
+  const { lat, lng } = map.getCenter();
+  const zoom = map.getZoom();
+
+  function fmt(v, decimals = 4) {
+    // redondea a 'decimals' y quita ceros/trailing decimal point
+    return (Math.round(v * Math.pow(10, decimals)) / Math.pow(10, decimals)).toString();
+  }
+
+  const hash = `#map=${zoom}/${fmt(lat)}/${fmt(lng)}`;
+  history.replaceState(null, "", hash);
+}
+
+// hook eventos (debounced)
+function attachHashSync(map) {
   let timer = null;
-  function debounceSave() {
+  function debounced() {
     if (timer) clearTimeout(timer);
-    timer = setTimeout(function () { saveMapView(map); timer = null; }, 300);
+    timer = setTimeout(function () { updateHash(); timer = null; }, 200);
   }
-  map.on('moveend', debounceSave);
-  map.on('zoomend', debounceSave);
+  map.on('moveend', debounced);
+  map.on('zoomend', debounced);
 }
 
-restoreMapView(map);
-attachMapViewPersistence(map);
+// inicializa
+initMapFromHash();
+attachHashSync(map);
 
 // Helpers: haversine distance (m)
 function toRad(deg) { return deg * Math.PI / 180; }
