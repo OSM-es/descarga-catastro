@@ -6,18 +6,15 @@ if [ "$#" -ne 4 ]; then
   exit 1
 fi
 
-MINLON=$1
-MINLAT=$2
-MAXLON=$3
-MAXLAT=$4
-S_SRS=EPSG:3857
+XMIN=$1
+YMIN=$2
+XMAX=$3
+YMAX=$4
 T_SRS=EPSG:4326
 
-read XMIN YMIN < <(echo "$MINLON $MINLAT" | cs2cs +init=${T_SRS} +to +init=${S_SRS} -f "%.3f" | awk '{print $1, $2}')
-read XMAX YMAX < <(echo "$MAXLON $MAXLAT" | cs2cs +init=${T_SRS} +to +init=${S_SRS} -f "%.3f" | awk '{print $1, $2}')
-
-BBOX="${XMIN},${YMIN},${XMAX},${YMAX}"
-WFS="http://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx?service=wfs&version=2&request=GetFeature&bbox=$BBOX&srsname=${S_SRS}"
+# EPSG:4326 necesita intercambiar el orden de los ejes
+BBOX="${YMIN},${XMIN},${YMAX},${XMAX}"
+WFS="http://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx?service=wfs&version=2&request=GetFeature&bbox=$BBOX&srsname=${T_SRS}"
 
 # Check Catastro url availability
 RESPONSE=$(curl -s -w "%{http_code}" "$WFS")
@@ -36,7 +33,7 @@ fi
 OUTDIR=$(mktemp -d)
 curl --silent --output "$OUTDIR/Building.gml" "$WFS&typenames=bu:Building"
 if ogrinfo -ro -so "$OUTDIR/Building.gml" Building >/dev/null 2>&1 ; then
-  ogr2ogr -f GeoJSON -s_srs ${S_SRS} -t_srs ${T_SRS} -nln Building -spat $XMIN $YMIN $XMAX $YMAX -skipfailures -explodecollections \
+  ogr2ogr -f GeoJSON -t_srs ${T_SRS} -nln Building -spat $XMIN $YMIN $XMAX $YMAX -skipfailures -explodecollections \
     "$OUTDIR/Building.geojson" "$OUTDIR/Building.gml" \
     -dialect sqlite \
     -sql "SELECT 
@@ -57,7 +54,7 @@ fi
 
 curl --silent --output "$OUTDIR/BuildingPart.gml" "$WFS&typenames=bu:BuildingPart"
 if ogrinfo -ro -so "$OUTDIR/BuildingPart.gml" BuildingPart >/dev/null 2>&1 ; then
-  ogr2ogr -f GeoJSON -s_srs ${S_SRS} -t_srs ${T_SRS} -nln BuildingPart -spat $XMIN $YMIN $XMAX $YMAX -skipfailures \
+  ogr2ogr -f GeoJSON -t_srs ${T_SRS} -nln BuildingPart -spat $XMIN $YMIN $XMAX $YMAX -skipfailures \
     "$OUTDIR/BuildingPart.geojson" "$OUTDIR/BuildingPart.gml" \
     -dialect sqlite \
     -sql "SELECT 
@@ -70,7 +67,7 @@ fi
 
 curl --silent --output "$OUTDIR/OtherConstruction.gml" "$WFS&typenames=bu:OtherConstruction"
 if ogrinfo -ro -so "$OUTDIR/OtherConstruction.gml" OtherConstruction >/dev/null 2>&1 ; then
-  ogr2ogr -f GeoJSON -s_srs ${S_SRS} -t_srs ${T_SRS} -nln OtherConstruction -spat $XMIN $YMIN $XMAX $YMAX -skipfailures \
+  ogr2ogr -f GeoJSON -t_srs ${T_SRS} -nln OtherConstruction -spat $XMIN $YMIN $XMAX $YMAX -skipfailures \
     "$OUTDIR/OtherConstruction.geojson" "$OUTDIR/OtherConstruction.gml" \
     -sql "SELECT 'swimming_pool' as leisure FROM OtherConstruction WHERE constructionNature = 'openAirPool'"
 fi
@@ -99,7 +96,7 @@ if jq -e -s '[.[] | (.features // []) | length] | add > 0' "$OUTDIR/Building.geo
 -- Delete building or its parts whenever are out of the bbox
 WITH bbox AS (
 SELECT ST_GeomFromText(
-	'POLYGON((${MINLON} ${MINLAT}, ${MAXLON} ${MINLAT}, ${MAXLON} ${MAXLAT}, ${MINLON} ${MAXLAT}, ${MINLON} ${MINLAT}))',
+	'POLYGON((${XMIN} ${YMIN}, ${XMAX} ${YMIN}, ${XMAX} ${YMAX}, ${XMIN} ${YMAX}, ${XMIN} ${YMIN}))',
 	${T_SRS#EPSG:}
 ) AS geom
 )
