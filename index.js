@@ -167,6 +167,7 @@ function setInputsFromBounds(bounds) {
 map.on(L.Draw.Event.CREATED, function (e) {
   if (drawnLayer) { map.removeLayer(drawnLayer); }
   drawnLayer = e.layer.addTo(map);
+  drawnLayer.editing.enable();
   setInputsFromBounds(drawnLayer.getBounds());
 });
 
