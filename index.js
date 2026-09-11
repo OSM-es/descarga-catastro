@@ -40,6 +40,9 @@ const search = new GeoSearch.GeoSearchControl({
 });
 map.addControl(search);
 
+const opacity = L.control.opacity(overlays)
+map.addControl(opacity);
+
 const github = L.control({ position: 'topleft' });
 const GITHUB_URL = "https://github.com/OSM-es/descarga-catastro"
 github.onAdd = function () {
