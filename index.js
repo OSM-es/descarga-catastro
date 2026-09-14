@@ -54,9 +54,6 @@ github.onAdd = function () {
 }
 github.addTo(map);
 
-// key en sessionStorage
-const MAP_VIEW = 'descarga-catastro_mapview';
-
 // parsea hash #map=zoom/lat/lng (acepta zoom entero)
 function parseHashMap() {
   const hash = window.location.hash;
@@ -172,6 +169,11 @@ map.on(L.Draw.Event.CREATED, function (e) {
   drawnLayer = e.layer.addTo(map);
   drawnLayer.editing.enable();
   setInputsFromBounds(drawnLayer.getBounds());
+
+  // Escucha eventos del layer mientras se edita
+  drawnLayer.on('edit', function() {
+    setInputsFromBounds(drawnLayer.getBounds());
+  });
 });
 
 function readCoords() {
